@@ -9,4 +9,4 @@
 
 ## Reference
 
-fork https://github.com/Sarofc/PSD2UGUI-Unity
+fork https://github.com/zs9024/quick_psd2ugui
