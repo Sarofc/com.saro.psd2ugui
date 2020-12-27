@@ -7,10 +7,6 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using Object = UnityEngine.Object;
 
-#if UNITY_5_3
-using UnityEditor.SceneManagement;
-#endif
-
 namespace PSDUIImporter
 {
     public class PSDImportCtrl
@@ -19,25 +15,6 @@ namespace PSDUIImporter
 
         private Dictionary<ELayerType, ILayerImport> m_Type2LayerImporterMap;
         private Dictionary<EImageType, IImageImport> m_Type2ImageImporterMap;
-
-        //private IImageImport spriteImport;
-        //private IImageImport textImport;
-        //private IImageImport textureImport;
-        //private IImageImport slicedSpriteImport;
-        //private IImageImport halfSpriteImport;
-
-        //private ILayerImport buttonImport;
-        //private ILayerImport toggleImport;
-        //private ILayerImport panelImport;
-        //private ILayerImport scrollViewImport;
-        //private ILayerImport scrollBarImport;
-        //private ILayerImport sliderImport;
-        //private ILayerImport gridImport;
-        //private ILayerImport emptyImport;
-        //private ILayerImport groupImport;
-        //private ILayerImport inputFiledImport;
-        //private ILayerImport layoutElemLayerImport;
-        //private ILayerImport tabGroupLayerImport;
 
         public PSDImportCtrl(string xmlFilePath)
         {
@@ -48,7 +25,7 @@ namespace PSDUIImporter
             InitCanvas();
             LoadLayers();
             MoveLayers();
-            InitDrawers();
+            RegisterDrawers();
             PSDImportUtility.ParentDic.Clear();
         }
 
@@ -78,50 +55,6 @@ namespace PSDUIImporter
             {
                 importer.DrawLayer(layer, parent);
             }
-
-            // old
-            //switch (layer.type)
-            //{
-            //    case LayerType.Panel:
-            //        panelImport.DrawLayer(layer, parent);
-            //        break;
-            //    case LayerType.Normal:
-            //        emptyImport.DrawLayer(layer, parent);
-            //        break;
-            //    case LayerType.Button:
-            //        buttonImport.DrawLayer(layer, parent);
-            //        break;
-            //    case LayerType.Toggle:
-            //        toggleImport.DrawLayer(layer, parent);
-            //        break;
-            //    case LayerType.Grid:
-            //        gridImport.DrawLayer(layer, parent);
-            //        break;
-            //    case LayerType.ScrollView:
-            //        scrollViewImport.DrawLayer(layer, parent);
-            //        break;
-            //    case LayerType.Slider:
-            //        sliderImport.DrawLayer(layer, parent);
-            //        break;
-            //    case LayerType.Group:
-            //        groupImport.DrawLayer(layer, parent);
-            //        break;
-            //    case LayerType.InputField:
-            //        inputFiledImport.DrawLayer(layer, parent);
-            //        break;
-            //    case LayerType.ScrollBar:
-            //        scrollBarImport.DrawLayer(layer, parent);
-            //        break;
-            //    case LayerType.LayoutElement:
-            //        layoutElemLayerImport.DrawLayer(layer, parent);
-            //        break;
-            //    case LayerType.TabGroup:
-            //        tabGroupLayerImport.DrawLayer(layer, parent);
-            //        break;
-            //    default:
-            //        break;
-
-            //}
         }
 
         public void DrawLayers(Layer[] layers, GameObject parent)
@@ -151,33 +84,6 @@ namespace PSDUIImporter
                     importer.DrawImage(image, parent, ownObj);
                 }
             }
-
-            //switch (image.imageType)
-            //{
-            //    case ImageType.Image:
-            //        spriteImport.DrawImage(image, parent, ownObj);
-            //        break;
-            //    case ImageType.Texture:
-            //        textureImport.DrawImage(image, parent, ownObj);
-            //        break;
-            //    case ImageType.Label:
-            //        textImport.DrawImage(image, parent, ownObj);
-            //        break;
-            //    case ImageType.SliceImage:
-            //        slicedSpriteImport.DrawImage(image, parent, ownObj);
-            //        break;
-            //    case ImageType.LeftHalfImage:
-            //        halfSpriteImport.DrawImage(image, parent, ownObj);
-            //        break;
-            //    case ImageType.BottomHalfImage:
-            //        halfSpriteImport.DrawImage(image, parent, ownObj);
-            //        break;
-            //    case ImageType.QuarterImage:
-            //        halfSpriteImport.DrawImage(image, parent, ownObj);
-            //        break;
-            //    default:
-            //        break;
-            //}
         }
 
         private void InitDataAndPath(string xmlFilePath)
@@ -189,15 +95,10 @@ namespace PSDUIImporter
                 Debug.Log("The file " + xmlFilePath + " wasn't able to generate a PSDUI.");
                 return;
             }
-#if UNITY_5_2
-            if (EditorApplication.SaveCurrentSceneIfUserWantsTo() == false) { return; }
-#elif UNITY_5_3
-            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo() == false) { return; }
-#else
-            if (UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo() == false) { return; }
-#endif
 
-            // 已改为，改为直接在unity里选择，然后通过 Assetdatabase转成直接可用的路径
+            if (UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo() == false) { return; }
+
+            // 已改为，改为直接在unity里选择，然后通过Assetdatabase转成直接可用的路径
             PSDImportUtility.baseFilename = Path.GetFileNameWithoutExtension(xmlFilePath);
             PSDImportUtility.baseDirectory = Path.GetDirectoryName(xmlFilePath) + @"\";
 
@@ -208,16 +109,12 @@ namespace PSDUIImporter
 
         private void InitCanvas()
         {
-#if UNITY_5_2
-            EditorApplication.NewScene();
-#elif UNITY_5_3
-            EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects);
-#else 
             UnityEditor.SceneManagement.EditorSceneManager.NewScene(UnityEditor.SceneManagement.NewSceneSetup.DefaultGameObjects);
-#endif
+
             Canvas temp = AssetDatabase.LoadAssetAtPath(PSD2UGUIConfig.ASSET_PATH_CANVAS, typeof(Canvas)) as Canvas;
             PSDImportUtility.canvas = GameObject.Instantiate(temp);
-            PSDImportUtility.canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            PSDImportUtility.canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            PSDImportUtility.canvas.worldCamera = Camera.main;
 
             UnityEngine.UI.CanvasScaler scaler = PSDImportUtility.canvas.GetComponent<UnityEngine.UI.CanvasScaler>();
             scaler.screenMatchMode = UnityEngine.UI.CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
@@ -247,12 +144,11 @@ namespace PSDUIImporter
             }
         }
 
-        private void InitDrawers()
+        private void RegisterDrawers()
         {
             var layerImporters = PSDImportUtility.GetAllLayerImporters();
             foreach (var importer in layerImporters)
             {
-                //Debug.LogError(importer.GetType());
                 var att = importer.GetType().GetCustomAttribute<CustomLayerAttribute>();
                 if (att != null)
                 {
@@ -269,41 +165,6 @@ namespace PSDUIImporter
                     RegisterImageImporter(att.ImageType, importer);
                 }
             }
-
-            //RegisterLayerImporter(LayerType.Button, new ButtonLayerImport(this));
-            //RegisterLayerImporter(LayerType.Toggle, new ToggleLayerImport(this));
-            //RegisterLayerImporter(LayerType.Panel, new PanelLayerImport(this));
-            //RegisterLayerImporter(LayerType.ScrollView, new ScrollViewLayerImport(this));
-            //RegisterLayerImporter(LayerType.ScrollBar, new ScrollBarLayerImport(this));
-            //RegisterLayerImporter(LayerType.Slider, new SliderLayerImport(this));
-            //RegisterLayerImporter(LayerType.Grid, new GridLayerImport(this));
-            //RegisterLayerImporter(LayerType.Normal, new NormalLayerImport(this));
-            //RegisterLayerImporter(LayerType.InputField, new InputFieldLayerImport(this));
-            //RegisterLayerImporter(LayerType.LayoutElement, new LayoutElementLayerImport(this));
-            //RegisterLayerImporter(LayerType.TabGroup, new TabGroupLayerImport(this));
-
-
-            //RegisterImageImporter(ImageType.Image, new SpriteImport());
-            //RegisterImageImporter(ImageType.Label, new TextImport());
-            //RegisterImageImporter(ImageType.Texture, new TextureImport());
-            //RegisterImageImporter(ImageType.SliceImage, new SliceSpriteImport());
-            //RegisterImageImporter(ImageType.LeftHalfImage, new HalfSpriteImport());
-            //RegisterImageImporter(ImageType.BottomHalfImage, new HalfSpriteImport());
-            //RegisterImageImporter(ImageType.QuarterImage, new HalfSpriteImport());
-
-
-            //buttonImport = new ButtonLayerImport(this);
-            //toggleImport = new ToggleLayerImport(this);
-            //panelImport = new PanelLayerImport(this);
-            //scrollViewImport = new ScrollViewLayerImport(this);
-            //scrollBarImport = new ScrollBarLayerImport(this);
-            //sliderImport = new SliderLayerImport(this);
-            //gridImport = new GridLayerImport(this);
-            //emptyImport = new DefultLayerImport(this);
-            //groupImport = new GroupLayerImport(this);
-            //inputFiledImport = new InputFieldLayerImport(this);
-            //layoutElemLayerImport = new LayoutElementLayerImport(this);
-            //tabGroupLayerImport = new TabGroupLayerImport(this);
         }
 
         public void BeginDrawUILayers()
@@ -343,7 +204,6 @@ namespace PSDUIImporter
         //--------------------------------------------------------------------------
         // private methods,按texture或image的要求导入图片到unity可加载的状态
         //-------------------------------------------------------------------------
-
         private void ImportLayer(Layer layer, string baseDirectory)
         {
             if (layer.image != null)
@@ -380,7 +240,7 @@ namespace PSDUIImporter
 
                         if (image.imageType == EImageType.SliceImage)  //slice才需要设置border,可能需要根据实际修改border值
                         {
-                            setSpriteBorder(textureImporter, image.arguments);
+                            SetSpriteBorder(textureImporter, image.arguments);
                             //textureImporter.spriteBorder = new Vector4(3, 3, 3, 3);   // Set Default Slice type  UnityEngine.UI.Image's border to Vector4 (3, 3, 3, 3)
                         }
 
@@ -402,7 +262,7 @@ namespace PSDUIImporter
         }
 
         //设置九宫格
-        private void setSpriteBorder(TextureImporter textureImporter, string[] args)
+        private void SetSpriteBorder(TextureImporter textureImporter, string[] args)
         {
             textureImporter.spriteBorder = new Vector4(float.Parse(args[0]), float.Parse(args[1]), float.Parse(args[2]), float.Parse(args[3]));
         }
@@ -432,9 +292,6 @@ namespace PSDUIImporter
 
                 AssetDatabase.Refresh();
 
-                //for (int imageIndex = 0; imageIndex < layer.images.Length; imageIndex++)
-                //{
-                // we need to fixup all images that were exported from PS
                 PSImage image = layer.image;
                 if (image.imageSource == EImageSource.Global)
                 {
@@ -448,7 +305,6 @@ namespace PSDUIImporter
                         Debug.Log(targetPathName);
                     }
                 }
-                //}
             }
 
             if (layer.layers != null)

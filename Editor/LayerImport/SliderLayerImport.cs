@@ -12,12 +12,9 @@ namespace PSDUIImporter
         public void DrawLayer(Layer layer, GameObject parent)
         {
             Slider slider = PSDImportUtility.LoadAndInstant<Slider>(PSD2UGUIConfig.ASSET_PATH_SLIDER, layer.name, parent);
-            RectTransform sliderRectTrans = slider.GetComponent<RectTransform>();
-            sliderRectTrans.sizeDelta = new Vector2(layer.size.width, layer.size.height);
-            sliderRectTrans.anchoredPosition = new Vector2(layer.position.x, layer.position.y);
-
-            PosLoader posloader = slider.gameObject.AddComponent<PosLoader>();
-            posloader.worldPos = sliderRectTrans.position;
+            RectTransform sliderRect = slider.GetComponent<RectTransform>();
+            sliderRect.sizeDelta = new Vector2(layer.size.width, layer.size.height);
+            sliderRect.anchoredPosition = new Vector2(layer.position.x, layer.position.y);
 
             string type = layer.arguments[0].ToUpper();
             switch (type)
@@ -70,23 +67,23 @@ namespace PSDUIImporter
                 }
                 else if (image.name.ToLower().Contains("handle"))       //默认没有handle
                 {
-                    var handleRectTrans = slider.transform.Find("Handle Slide Area/Handle").GetComponent<RectTransform>();
-                    var handleSprite = handleRectTrans.GetComponent<Image>();
-                    slider.handleRect = handleRectTrans;
+                    var handleRect = slider.transform.Find("Handle Slide Area/Handle").GetComponent<RectTransform>();
+                    var handleSprite = handleRect.GetComponent<Image>();
+                    slider.handleRect = handleRect;
                     handleSprite.sprite = sprite;
 
                     // calc handle size
-                    var handleSlideAreaRectTrans = handleRectTrans.parent as RectTransform;
+                    var handleSlideAreaRectTrans = handleRect.parent as RectTransform;
                     if (slider.direction == Slider.Direction.LeftToRight || slider.direction == Slider.Direction.RightToLeft)
                     {
-                        handleRectTrans.sizeDelta = new Vector2(image.size.width, image.size.height - sliderRectTrans.sizeDelta.y - handleSlideAreaRectTrans.sizeDelta.y);
+                        handleRect.sizeDelta = new Vector2(image.size.width, image.size.height - sliderRect.sizeDelta.y - handleSlideAreaRectTrans.sizeDelta.y);
                     }
                     else
                     {
-                        handleRectTrans.sizeDelta = new Vector2(image.size.width - sliderRectTrans.sizeDelta.x - handleSlideAreaRectTrans.sizeDelta.x, image.size.height);
+                        handleRect.sizeDelta = new Vector2(image.size.width - sliderRect.sizeDelta.x - handleSlideAreaRectTrans.sizeDelta.x, image.size.height);
                     }
 
-                    handleRectTrans.gameObject.SetActive(true);
+                    handleRect.gameObject.SetActive(true);
                 }
             }
         }

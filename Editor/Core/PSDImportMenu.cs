@@ -9,9 +9,9 @@ namespace PSDUIImporter
     //------------------------------------------------------------------------------
     public class PSDImportMenu : ScriptableWizard
     {
-        public TextAsset psdxml;
+        public TextAsset psdXml;
 
-        [MenuItem("QuickTool/Create PSD2UGUIConfig", false, 1)]
+        [MenuItem("PSD2UGUI/Create Config", false, 2)]
         private static void CreateConfig()
         {
             var path = "Assets/Editor/PSD2UGUI/";
@@ -23,7 +23,7 @@ namespace PSDUIImporter
             AssetDatabase.CreateAsset(PSD2UGUIConfig.instance, path + "PSD2UGUIConfig.asset");
         }
 
-        [MenuItem("QuickTool/PSDImport ...", false, 1)]
+        [MenuItem("PSD2UGUI/Import XML ...", false, 1)]
         private static void CreateWizard()
         {
             ScriptableWizard.DisplayWizard<PSDImportMenu>("PSD 2 UGUI", "Cancel", "Import");
@@ -37,12 +37,12 @@ namespace PSDUIImporter
         // import
         private void OnWizardOtherButton()
         {
-            if (!psdxml)
+            if (!psdXml)
             {
                 return;
             }
 
-            var inputFile = AssetDatabase.GetAssetPath(psdxml);
+            var inputFile = AssetDatabase.GetAssetPath(psdXml);
 
             if (!string.IsNullOrEmpty(inputFile))
             {

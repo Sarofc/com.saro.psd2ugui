@@ -96,17 +96,4 @@ namespace PSDUIImporter
             }
         }
     }
-
-
-    [ExecuteInEditMode]
-    public class PosLoader : MonoBehaviour
-    {
-        public Vector2 worldPos;
-
-        private void Start()
-        {
-            transform.position = worldPos;
-            DestroyImmediate(this);
-        }
-    }
 }

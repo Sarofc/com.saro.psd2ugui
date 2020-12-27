@@ -1,4 +1,4 @@
-﻿using Quick.UI;
+﻿using UGUI.UI;
 using UnityEngine;
 
 namespace PSDUIImporter
