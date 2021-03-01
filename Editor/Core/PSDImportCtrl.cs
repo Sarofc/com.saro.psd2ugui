@@ -13,13 +13,13 @@ namespace PSDUIImporter
     {
         private PSDUI psdUI;
 
-        private Dictionary<ELayerType, ILayerImport> m_Type2LayerImporterMap;
-        private Dictionary<EImageType, IImageImport> m_Type2ImageImporterMap;
+        private Dictionary<ELayerType, IPsLayerImporter> m_Type2LayerImporterMap;
+        private Dictionary<EImageType, IPsImageImporter> m_Type2ImageImporterMap;
 
         public PSDImportCtrl(string xmlFilePath)
         {
-            m_Type2LayerImporterMap = new Dictionary<ELayerType, ILayerImport>();
-            m_Type2ImageImporterMap = new Dictionary<EImageType, IImageImport>();
+            m_Type2LayerImporterMap = new Dictionary<ELayerType, IPsLayerImporter>();
+            m_Type2ImageImporterMap = new Dictionary<EImageType, IPsImageImporter>();
 
             InitDataAndPath(xmlFilePath);
             InitCanvas();
@@ -29,7 +29,7 @@ namespace PSDUIImporter
             PSDImportUtility.ParentDic.Clear();
         }
 
-        public void RegisterLayerImporter(ELayerType type, ILayerImport importer)
+        public void RegisterLayerImporter(ELayerType type, IPsLayerImporter importer)
         {
             if (m_Type2LayerImporterMap.ContainsKey(type))
             {
@@ -39,7 +39,7 @@ namespace PSDUIImporter
             importer.ctrl = this;
         }
 
-        public void RegisterImageImporter(EImageType type, IImageImport importer)
+        public void RegisterImageImporter(EImageType type, IPsImageImporter importer)
         {
             if (m_Type2ImageImporterMap.ContainsKey(type))
             {
@@ -48,41 +48,31 @@ namespace PSDUIImporter
             m_Type2ImageImporterMap.Add(type, importer);
         }
 
-        public void DrawLayer(Layer layer, GameObject parent)
+        public void DrawPsLayer(PsLayer layer, GameObject parent)
         {
             // new
             if (m_Type2LayerImporterMap.TryGetValue(layer.type, out var importer))
             {
-                importer.DrawLayer(layer, parent);
+                importer.DrawPsLayer(layer, parent);
             }
         }
 
-        public void DrawLayers(Layer[] layers, GameObject parent)
+        public void DrawPsLayers(PsLayer[] layers, GameObject parent)
         {
             if (layers != null)
             {
                 for (int layerIndex = 0; layerIndex < layers.Length; layerIndex++)
                 {
-                    DrawLayer(layers[layerIndex], parent);
+                    DrawPsLayer(layers[layerIndex], parent);
                 }
             }
         }
 
-        public void DrawImage(PSImage image, GameObject parent, GameObject ownObj = null)
+        public void DrawPsImage(PsImage image, GameObject parent, GameObject ownObj = null)
         {
-            if (EImageType.MirrorImage.HasFlag(image.imageType))
+            if (m_Type2ImageImporterMap.TryGetValue(image.imageType, out var importer))
             {
-                if (m_Type2ImageImporterMap.TryGetValue(EImageType.MirrorImage, out var importer))
-                {
-                    importer.DrawImage(image, parent, ownObj);
-                }
-            }
-            else
-            {
-                if (m_Type2ImageImporterMap.TryGetValue(image.imageType, out var importer))
-                {
-                    importer.DrawImage(image, parent, ownObj);
-                }
+                importer.DrawPsImage(image, parent, ownObj);
             }
         }
 
@@ -101,16 +91,10 @@ namespace PSDUIImporter
             // 已改为，改为直接在unity里选择，然后通过Assetdatabase转成直接可用的路径
             PSDImportUtility.baseFilename = Path.GetFileNameWithoutExtension(xmlFilePath);
             PSDImportUtility.baseDirectory = Path.GetDirectoryName(xmlFilePath) + @"\";
-
-            // old
-            //PSDImportUtility.baseFilename = Path.GetFileNameWithoutExtension(xmlFilePath);
-            //PSDImportUtility.baseDirectory = "Assets/" + Path.GetDirectoryName(xmlFilePath.Remove(0, Application.dataPath.Length + 1)) + "/";
         }
 
         private void InitCanvas()
         {
-            UnityEditor.SceneManagement.EditorSceneManager.NewScene(UnityEditor.SceneManagement.NewSceneSetup.DefaultGameObjects);
-
             Canvas temp = AssetDatabase.LoadAssetAtPath(PSD2UGUIConfig.ASSET_PATH_CANVAS, typeof(Canvas)) as Canvas;
             PSDImportUtility.canvas = GameObject.Instantiate(temp);
             PSDImportUtility.canvas.renderMode = RenderMode.ScreenSpaceCamera;
@@ -140,7 +124,7 @@ namespace PSDUIImporter
         {
             for (int layerIndex = 0; layerIndex < psdUI.layers.Length; layerIndex++)
             {
-                ImportLayer(psdUI.layers[layerIndex], PSDImportUtility.baseDirectory);
+                ImportPsLayer(psdUI.layers[layerIndex], PSDImportUtility.baseDirectory);
             }
         }
 
@@ -177,7 +161,7 @@ namespace PSDUIImporter
 
             for (int layerIndex = 0; layerIndex < psdUI.layers.Length; layerIndex++)
             {
-                DrawLayer(psdUI.layers[layerIndex], obj.gameObject);
+                DrawPsLayer(psdUI.layers[layerIndex], obj.gameObject);
             }
             AssetDatabase.Refresh();
         }
@@ -195,7 +179,7 @@ namespace PSDUIImporter
         {
             for (int layerIndex = 0; layerIndex < psdUI.layers.Length; layerIndex++)
             {
-                MoveAsset(psdUI.layers[layerIndex], PSDImportUtility.baseDirectory);
+                MoveAsset(psdUI.layers[layerIndex]);
             }
 
             AssetDatabase.Refresh();
@@ -204,19 +188,15 @@ namespace PSDUIImporter
         //--------------------------------------------------------------------------
         // private methods,按texture或image的要求导入图片到unity可加载的状态
         //-------------------------------------------------------------------------
-        private void ImportLayer(Layer layer, string baseDirectory)
+        private void ImportPsLayer(PsLayer layer, string baseDirectory)
         {
             if (layer.image != null)
             {
-                //for (int imageIndex = 0; imageIndex < layer.images.Length; imageIndex++)
-                //{
-                // we need to fixup all images that were exported from PS
-                //PSImage image = layer.images[imageIndex];
-                PSImage image = layer.image;
+                PsImage image = layer.image;
 
                 if (image.imageType != EImageType.Label)
                 {
-                    string texturePathName = PSDImportUtility.baseDirectory + image.name + PSD2UGUIConfig.PNG_SUFFIX;
+                    string texturePathName = PSDImportUtility.baseDirectory + image.name + PSD2UGUIConfig.k_PNG_SUFFIX;
 
                     Debug.Log(texturePathName);
                     // modify the importer settings
@@ -227,62 +207,33 @@ namespace PSDUIImporter
                         textureImporter.textureType = TextureImporterType.Sprite;
                         textureImporter.spriteImportMode = SpriteImportMode.Single;
                         textureImporter.mipmapEnabled = false;          //默认关闭mipmap
-                        if (image.imageSource == EImageSource.Global)
-                        {
-                            textureImporter.spritePackingTag = PSD2UGUIConfig.Globle_FOLDER_NAME;
-                        }
-                        else
-                        {
-                            textureImporter.spritePackingTag = PSDImportUtility.baseFilename;
-                        }
 
                         textureImporter.maxTextureSize = 2048;
-
-                        if (image.imageType == EImageType.SliceImage)  //slice才需要设置border,可能需要根据实际修改border值
-                        {
-                            SetSpriteBorder(textureImporter, image.arguments);
-                            //textureImporter.spriteBorder = new Vector4(3, 3, 3, 3);   // Set Default Slice type  UnityEngine.UI.Image's border to Vector4 (3, 3, 3, 3)
-                        }
 
                         AssetDatabase.WriteImportSettingsIfDirty(texturePathName);
                         AssetDatabase.ImportAsset(texturePathName);
                     }
                 }
-                //}
             }
 
             if (layer.layers != null)
             {
-                //LoadLayers();
                 for (int layerIndex = 0; layerIndex < layer.layers.Length; layerIndex++)
                 {
-                    ImportLayer(layer.layers[layerIndex], PSDImportUtility.baseDirectory);
+                    ImportPsLayer(layer.layers[layerIndex], PSDImportUtility.baseDirectory);
                 }
             }
         }
 
-        //设置九宫格
-        private void SetSpriteBorder(TextureImporter textureImporter, string[] args)
-        {
-            textureImporter.spriteBorder = new Vector4(float.Parse(args[0]), float.Parse(args[1]), float.Parse(args[2]), float.Parse(args[3]));
-        }
 
         //------------------------------------------------------------------
         //when it's a common psd, then move the asset to special folder
         //------------------------------------------------------------------
-        private void MoveAsset(Layer layer, string baseDirectory)
+        private void MoveAsset(PsLayer layer)
         {
             if (layer.image != null)
             {
                 string newPath = PSD2UGUIConfig.Globle_BASE_FOLDER;
-                if (layer.name == PSD2UGUIConfig.IMAGE)
-                {
-                    newPath += PSD2UGUIConfig.IMAGE + "/";
-                }
-                else if (layer.name == PSD2UGUIConfig.NINE_SLICE)
-                {
-                    newPath += PSD2UGUIConfig.NINE_SLICE + "/";
-                }
 
                 if (!System.IO.Directory.Exists(newPath))
                 {
@@ -292,17 +243,27 @@ namespace PSDUIImporter
 
                 AssetDatabase.Refresh();
 
-                PSImage image = layer.image;
+                PsImage image = layer.image;
                 if (image.imageSource == EImageSource.Global)
                 {
-                    string texturePathName = PSDImportUtility.baseDirectory + image.name + PSD2UGUIConfig.PNG_SUFFIX;
-                    string targetPathName = newPath + image.name + PSD2UGUIConfig.PNG_SUFFIX;
+                    string texturePathName = PSDImportUtility.baseDirectory + image.name + PSD2UGUIConfig.k_PNG_SUFFIX;
+                    string targetPathName = newPath + image.name + PSD2UGUIConfig.k_PNG_SUFFIX;
 
-                    if (File.Exists(texturePathName))
+                    //if (!File.Exists(targetPathName))
                     {
-                        AssetDatabase.MoveAsset(texturePathName, targetPathName);
-                        Debug.Log(texturePathName);
-                        Debug.Log(targetPathName);
+                        if (File.Exists(texturePathName))
+                        {
+                            var result = AssetDatabase.MoveAsset(texturePathName, targetPathName);
+                            if (string.IsNullOrEmpty(result))
+                            {
+                                Debug.Log($"move success: \nsrc:{texturePathName}\ndst:{targetPathName}");
+                            }
+                            else
+                            {
+                                File.Delete(texturePathName);
+                                Debug.LogError($"move failed, delete: {texturePathName} \n reason: {result}");
+                            }
+                        }
                     }
                 }
             }
@@ -311,7 +272,7 @@ namespace PSDUIImporter
             {
                 for (int layerIndex = 0; layerIndex < layer.layers.Length; layerIndex++)
                 {
-                    MoveAsset(layer.layers[layerIndex], PSDImportUtility.baseDirectory);
+                    MoveAsset(layer.layers[layerIndex]);
                 }
             }
         }

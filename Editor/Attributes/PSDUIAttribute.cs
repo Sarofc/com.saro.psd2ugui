@@ -6,7 +6,7 @@ namespace PSDUIImporter
     {
         private ELayerType m_LayerType;
 
-        public ELayerType LayerType { get => m_LayerType; set => m_LayerType = value; }
+        public ELayerType LayerType { get => m_LayerType; }
 
         public CustomLayerAttribute(ELayerType layerType)
         {
@@ -18,7 +18,7 @@ namespace PSDUIImporter
     {
         private EImageType m_ImageType;
 
-        public EImageType ImageType { get => m_ImageType; set => m_ImageType = value; }
+        public EImageType ImageType { get => m_ImageType; }
 
         public CustomImageAttribute(EImageType imageType)
         {

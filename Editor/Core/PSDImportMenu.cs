@@ -14,13 +14,13 @@ namespace PSDUIImporter
         [MenuItem("PSD2UGUI/Create Config", false, 2)]
         private static void CreateConfig()
         {
-            var path = "Assets/Editor/PSD2UGUI/";
-            if (!System.IO.Directory.Exists(path))
+            var directory = System.IO.Path.GetDirectoryName(PSD2UGUIConfig.k_ConfigPath);
+            if (!System.IO.Directory.Exists(directory))
             {
-                System.IO.Directory.CreateDirectory(path);
+                System.IO.Directory.CreateDirectory(directory);
             }
-            PSD2UGUIConfig.instance.hideFlags = HideFlags.None;
-            AssetDatabase.CreateAsset(PSD2UGUIConfig.instance, path + "PSD2UGUIConfig.asset");
+            var instance = ScriptableObject.CreateInstance<PSD2UGUIConfig>();
+            AssetDatabase.CreateAsset(instance, PSD2UGUIConfig.k_ConfigPath);
         }
 
         [MenuItem("PSD2UGUI/Import XML ...", false, 1)]

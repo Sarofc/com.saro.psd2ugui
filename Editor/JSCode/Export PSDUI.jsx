@@ -13,18 +13,19 @@
 // $.level = 0;
 // debugger; // launch debugger on next line
 
-var sceneData;
-var sourcePsd;
-var duppedPsd;
-var destinationFolder;
-var uuid;
-var sourcePsdName;
-var slicePaddingArr = new Array(0, 0, 0, 0)
-var sliceOriArr = new Array(0, 0, 0, 0)
+var xml;
+var srcPsd;
+var dupPsd;
+var dstFolder;
+var uid;
+var srcPsdName;
+
+var validNameMap = new Array({ "": 1 }, { "": 2 });
 
 main();
 
 function main() {
+
     // got a valid document?
     if (app.documents.length <= 0) {
         if (app.playbackDisplayDialogs != DialogModes.NO) {
@@ -35,16 +36,16 @@ function main() {
     }
 
     // ask for where the exported files should go
-    destinationFolder = Folder.selectDialog("Choose the destination for export.");
-    if (!destinationFolder) {
+    dstFolder = Folder.selectDialog("Choose the destination for export.");
+    if (!dstFolder) {
         return;
     }
 
     // cache useful variables
-    uuid = 1;
-    sourcePsdName = app.activeDocument.name;
-    var layerCount = app.documents[sourcePsdName].layers.length;
-    var layerSetsCount = app.documents[sourcePsdName].layerSets.length;
+    uid = 1;
+    srcPsdName = app.activeDocument.name;
+    var layerCount = app.documents[srcPsdName].layers.length;
+    var layerSetsCount = app.documents[srcPsdName].layerSets.length;
 
     if ((layerCount <= 1) && (layerSetsCount <= 0)) {
         if (app.playbackDisplayDialogs != DialogModes.NO) {
@@ -60,36 +61,36 @@ function main() {
     app.preferences.rulerUnits = Units.PIXELS;
     app.preferences.typeUnits = TypeUnits.PIXELS;
 
-    // duplicate document so we can extract everythng we need
-    duppedPsd = app.activeDocument.duplicate();
-    duppedPsd.activeLayer = duppedPsd.layers[duppedPsd.layers.length - 1];
+    // duplicate document so we can extract everything we need
+    dupPsd = app.activeDocument.duplicate();
+    dupPsd.activeLayer = dupPsd.layers[dupPsd.layers.length - 1];
 
-    hideAllLayers(duppedPsd);
+    hideAllLayers(dupPsd);
 
     // export layers
-    sceneData = "<?xml version=\"1.0\" encoding=\"utf-8\"?>";
-    sceneData += "<PSDUI>";
+    xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>";
+    xml += "<PSDUI>";
 
-    sceneData += "\n<psdSize>";
-    sceneData += "<width>" + duppedPsd.width.value + "</width>";
-    sceneData += "<height>" + duppedPsd.height.value + "</height>";
-    sceneData += "</psdSize>";
+    xml += "\n<psdSize>";
+    xml += "<width>" + dupPsd.width.value + "</width>";
+    xml += "<height>" + dupPsd.height.value + "</height>";
+    xml += "</psdSize>";
 
-    sceneData += "\n<layers>";
-    exportAllLayers(duppedPsd);
-    sceneData += "</layers>";
+    xml += "\n<layers>";
+    exportAllLayers(dupPsd);
+    xml += "</layers>";
 
-    sceneData += "\n</PSDUI>";
-    $.writeln(sceneData);
+    xml += "\n</PSDUI>";
+    $.writeln(xml);
 
-    duppedPsd.close(SaveOptions.DONOTSAVECHANGES);
+    dupPsd.close(SaveOptions.DONOTSAVECHANGES);
 
     // create export
-    var sceneFile = new File(destinationFolder + "/" + destinationFolder.name + ".xml");
-    sceneFile.encoding = "utf-8";   //写文件时指定编码，不然中文会出现乱码
-    sceneFile.open('w');
-    sceneFile.writeln(sceneData);
-    sceneFile.close();
+    var xmlFile = new File(dstFolder + "/" + dstFolder.name + ".xml");
+    xmlFile.encoding = "utf-8";   //写文件时指定编码，不然中文会出现乱码
+    xmlFile.open('w');
+    xmlFile.writeln(xml);
+    xmlFile.close();
 
     app.preferences.rulerUnits = savedRulerUnits;
     app.preferences.typeUnits = savedTypeUnits;
@@ -125,92 +126,84 @@ function exportLayer(obj) {
     }
 }
 
-function exportLayerSet(_layer) {
-    if (typeof (_layer.layers) == "undefined" || _layer.layers.length <= 0) {
+function exportLayerSet(obj) {
+    if (typeof (obj.layers) == "undefined" || obj.layers.length <= 0) {
         return
     }
-    if (_layer.name.search("@ScrollView") >= 0) {
-        exportScrollView(_layer);
+    if (obj.name.search("@ScrollView") >= 0) {
+        exportScrollView(obj);
     }
-    else if (_layer.name.search("@Grid") >= 0) {
-        exportGrid(_layer);
+    else if (obj.name.search("@GridLayout") >= 0) {
+        exportGridLayout(obj);
     }
-    else if (_layer.name.search("@Button") >= 0) {
-        exportButton(_layer);
+    else if (obj.name.search("@Button") >= 0) {
+        exportButton(obj);
     }
-    else if (_layer.name.search("@Toggle") >= 0) {
-        exportToggle(_layer);
+    else if (obj.name.search("@Toggle") >= 0) {
+        exportToggle(obj);
     }
-    else if (_layer.name.search("@Panel") >= 0) {
-        exportPanel(_layer);
+    else if (obj.name.search("@Slider") >= 0) {
+        exportSlider(obj);
     }
-    else if (_layer.name.search("@Slider") >= 0) {
-        exportSlider(_layer);
+    else if (obj.name.search("@HVLayout") >= 0) {
+        exportHVLayout(obj);
     }
-    else if (_layer.name.search("@Group") >= 0) {
-        exportGroup(_layer);
+    else if (obj.name.search("@InputField") >= 0) {
+        exportInputField(obj);
     }
-    else if (_layer.name.search("@InputField") >= 0) {
-        exportInputField(_layer);
+    else if (obj.name.search("@Scrollbar") >= 0) {
+        exportScrollBar(obj);
     }
-    else if (_layer.name.search("@Scrollbar") >= 0) {
-        exportScrollBar(_layer);
-    }
-    else if (_layer.name.search("@LE") >= 0)                         //增加布局元素导出
-    {
-        exportLayoutElement(_layer)
-    }
-    else if (_layer.name.search("@TabGroup") >= 0)              //增加页签类型导出
-    {
-        exportTabGroup(_layer)
+    else if (obj.name.search("@LayoutElement") >= 0) {
+        exportLayoutElement(obj)
     }
     else {
-        sceneData += "<Layer>";
-        sceneData += "<type>Normal</type>";
-        sceneData += "<name>" + _layer.name + "</name>";
-        sceneData += "<layers>";
-        exportAllLayers(_layer)
-        sceneData += "</layers>";
-        sceneData += "</Layer>";
+        xml += "<PsLayer>";
+        xml += "<type>Normal</type>";
+        xml += "<name>" + obj.name + "</name>";
+        xml += "<layers>";
+        exportAllLayers(obj)
+        xml += "</layers>";
+        xml += "</PsLayer>";
     }
 }
 
 function exportLayoutElement(obj) {
-    sceneData += "<Layer>";
-    sceneData += "<type>LayoutElement</type>";
+    xml += "<PsLayer>";
+    xml += "<type>LayoutElement</type>";
     var itemName = obj.name.substring(0, obj.name.search("@"));
-    sceneData += "<name>" + itemName + "</name>";
+    xml += "<name>" + itemName + "</name>";
 
-    sceneData += "<layers>";
+    xml += "<layers>";
     exportAllLayers(obj);
-    sceneData += "</layers>";
+    xml += "</layers>";
 
     obj.visible = true;
     showAllLayers(obj);
 
-    var recSize = getLayerRec(duppedPsd.duplicate());
+    var recSize = getLayerRec(dupPsd.duplicate());
 
-    sceneData += "<position>";
-    sceneData += "<x>" + recSize.x + "</x>";
-    sceneData += "<y>" + recSize.y + "</y>";
-    sceneData += "</position>";
+    xml += "<position>";
+    xml += "<x>" + recSize.x + "</x>";
+    xml += "<y>" + recSize.y + "</y>";
+    xml += "</position>";
 
-    sceneData += "<size>";
-    sceneData += "<width>" + recSize.width + "</width>";
-    sceneData += "<height>" + recSize.height + "</height>";
-    sceneData += "</size>";
+    xml += "<size>";
+    xml += "<width>" + recSize.width + "</width>";
+    xml += "<height>" + recSize.height + "</height>";
+    xml += "</size>";
 
     hideAllLayers(obj);
 
-    sceneData += "</Layer>";
+    xml += "</PsLayer>";
 }
 
 function exportScrollView(obj) {
     var itemName = obj.name.substring(0, obj.name.search("@"));
-    sceneData += ("<Layer>\n<type>ScrollView</type>\n<name>" + itemName + "</name>\n");
-    sceneData += ("<layers>\n");
+    xml += ("<PsLayer>\n<type>ScrollView</type>\n<name>" + itemName + "</name>\n");
+    xml += ("<layers>\n");
     exportAllLayers(obj);
-    sceneData += ("</layers>");
+    xml += ("</layers>");
 
     var params = obj.name.split(":");
 
@@ -225,17 +218,17 @@ function exportScrollView(obj) {
     else {
         obj.layers[obj.layers.length - 1].visible = true;
 
-        recSize = getLayerRec(duppedPsd.duplicate());
+        recSize = getLayerRec(dupPsd.duplicate());
 
-        sceneData += "<position>";
-        sceneData += "<x>" + recSize.x + "</x>";
-        sceneData += "<y>" + recSize.y + "</y>";
-        sceneData += "</position>";
+        xml += "<position>";
+        xml += "<x>" + recSize.x + "</x>";
+        xml += "<y>" + recSize.y + "</y>";
+        xml += "</position>";
 
-        sceneData += "<size>";
-        sceneData += "<width>" + recSize.width + "</width>";
-        sceneData += "<height>" + recSize.height + "</height>";
-        sceneData += "</size>";
+        xml += "<size>";
+        xml += "<width>" + recSize.width + "</width>";
+        xml += "<height>" + recSize.height + "</height>";
+        xml += "</size>";
 
         obj.layers[obj.layers.length - 1].visible = false;
     }
@@ -243,13 +236,13 @@ function exportScrollView(obj) {
     //以下计算padding和spacing
     obj.layers[0].visible = true;
     showAllLayers(obj.layers[0]);                           //子图层组已经在上面导出过，要再次计算size需先将其显示
-    var rec0 = getLayerRec(duppedPsd.duplicate());
+    var rec0 = getLayerRec(dupPsd.duplicate());
     hideAllLayers(obj.layers[0]);
     obj.layers[0].visible = false;
 
     obj.layers[1].visible = true;
     showAllLayers(obj.layers[1]);
-    var rec1 = getLayerRec(duppedPsd.duplicate());
+    var rec1 = getLayerRec(dupPsd.duplicate());
     hideAllLayers(obj.layers[0]);
     obj.layers[1].visible = false;
 
@@ -271,48 +264,48 @@ function exportScrollView(obj) {
         paddingy = (recSize.y + recSize.height / 2) - rec0.y - rec0.height / 2;
     }
 
-    sceneData += "<arguments>";
-    sceneData += "<string>" + params[1] + "</string>";     //滑动方向
-    sceneData += "<string>" + spacing + "</string>";
-    sceneData += "<string>" + Math.floor(paddingx) + "</string>";
-    sceneData += "<string>" + Math.floor(paddingy) + "</string>";
-    sceneData += "</arguments>";
+    xml += "<args>";
+    xml += "<string>" + params[1] + "</string>";     //滑动方向
+    xml += "<string>" + spacing + "</string>";
+    xml += "<string>" + Math.floor(paddingx) + "</string>";
+    xml += "<string>" + Math.floor(paddingy) + "</string>";
+    xml += "</args>";
 
-    sceneData += "</Layer>";
+    xml += "</PsLayer>";
 }
 
 function setLayerSizeAndPos(layer) {
     layer.visible = true;
 
-    var recSize = getLayerRec(duppedPsd.duplicate());
+    var recSize = getLayerRec(dupPsd.duplicate());
 
-    sceneData += "<position>";
-    sceneData += "<x>" + recSize.x + "</x>";
-    sceneData += "<y>" + recSize.y + "</y>";
-    sceneData += "</position>";
+    xml += "<position>";
+    xml += "<x>" + recSize.x + "</x>";
+    xml += "<y>" + recSize.y + "</y>";
+    xml += "</position>";
 
-    sceneData += "<size>";
-    sceneData += "<width>" + recSize.width + "</width>";
-    sceneData += "<height>" + recSize.height + "</height>";
-    sceneData += "</size>";
+    xml += "<size>";
+    xml += "<width>" + recSize.width + "</width>";
+    xml += "<height>" + recSize.height + "</height>";
+    xml += "</size>";
 
     layer.visible = false;
 
     return recSize;
 }
 
-function exportGrid(obj) {
+function exportGridLayout(obj) {
     var itemName = obj.name.substring(0, obj.name.search("@"));
-    sceneData += ("<Layer>\n<type>Grid</type>\n<name>" + itemName + "</name>\n");
-    sceneData += ("<layers>\n");
+    xml += ("<PsLayer>\n<type>GridLayout</type>\n<name>" + itemName + "</name>\n");
+    xml += ("<layers>\n");
     exportAllLayers(obj);
-    sceneData += ("</layers>");
+    xml += ("</layers>");
 
-    var params = obj.name.split(":");
+    // var params = obj.name.split(":");
 
-    if (params.length != 3) {
-        alert("Layer's name is illegal");
-    }
+    // if (params.length != 3) {
+    //     alert("Layer's name is illegal");
+    // }
 
     var recSize;
     if (obj.layers[obj.layers.length - 1].name.search("@Size") < 0) {
@@ -323,32 +316,34 @@ function exportGrid(obj) {
         recSize = setLayerSizeAndPos(obj.layers[obj.layers.length - 1]);
     }
 
-    var totalContentCount = obj.layers.length - 1;
+    // var totalContentCount = obj.layers.length - 1;
 
     obj.layers[0].visible = true;
     showAllLayers(obj.layers[0]);                           //子图层组已经在上面导出过，要再次计算size需先将其显示
-    var rec0 = getLayerRec(duppedPsd.duplicate());
+    var rec0 = getLayerRec(dupPsd.duplicate());
     hideAllLayers(obj.layers[0]);
     obj.layers[0].visible = false;
 
-    var renderHorizontalGap = params[2] > 1 ? (recSize.width - rec0.width * params[2]) / (params[2] - 1) : 0;
-    var renderVerticalGap = params[1] > 1 ? (recSize.height - rec0.height * params[1]) / (params[1] - 1) : 0;
+    // var renderHorizontalGap = params[2] > 1 ? (recSize.width - rec0.width * params[2]) / (params[2] - 1) : 0;
+    // var renderVerticalGap = params[1] > 1 ? (recSize.height - rec0.height * params[1]) / (params[1] - 1) : 0;
 
-    sceneData += "<arguments>";
-    sceneData += "<string>" + params[1] + "</string>";   //行数
-    sceneData += "<string>" + params[2] + "</string>";   //列数
-    sceneData += "<string>" + rec0.width + "</string>";   //render width
-    sceneData += "<string>" + rec0.height + "</string>";   //render height
-    sceneData += "<string>" + Math.floor(renderHorizontalGap) + "</string>"; //水平间距
-    sceneData += "<string>" + Math.floor(renderVerticalGap) + "</string>"; //垂直间距
-    sceneData += "</arguments>";
+    xml += "<args>";
+    xml += "<string>" + undefined + "</string>";   //TODO 预留
+    xml += "<string>" + undefined + "</string>";   //TODO 预留
+    xml += "<string>" + rec0.width + "</string>";   //render width
+    xml += "<string>" + rec0.height + "</string>";   //render height
+    xml += "<string>" + undefined + "</string>"; //TODO 预留
+    xml += "<string>" + undefined + "</string>";   //TODO 预留
+    // xml += "<string>" + Math.floor(renderHorizontalGap) + "</string>"; //水平间距
+    // xml += "<string>" + Math.floor(renderVerticalGap) + "</string>"; //垂直间距
+    xml += "</args>";
 
-    sceneData += "</Layer>";
+    xml += "</PsLayer>";
 }
 
-function exportGroup(obj) {
+function exportHVLayout(obj) {
     var itemName = obj.name.substring(0, obj.name.search("@"));
-    sceneData += ("<Layer>\n<type>Group</type>\n<name>" + itemName + "</name>\n");
+    xml += ("<PsLayer>\n<type>HVLayout</type>\n<name>" + itemName + "</name>\n");
 
     exportAllLayers(obj);
 
@@ -365,79 +360,70 @@ function exportGroup(obj) {
     else {
         obj.layers[obj.layers.length - 1].visible = true;
 
-        recSize = getLayerRec(duppedPsd.duplicate());
+        recSize = getLayerRec(dupPsd.duplicate());
 
-        sceneData += "<position>";
-        sceneData += "<x>" + recSize.x + "</x>";
-        sceneData += "<y>" + recSize.y + "</y>";
-        sceneData += "</position>";
+        xml += "<position>";
+        xml += "<x>" + recSize.x + "</x>";
+        xml += "<y>" + recSize.y + "</y>";
+        xml += "</position>";
 
-        sceneData += "<size>";
-        sceneData += "<width>" + recSize.width + "</width>";
-        sceneData += "<height>" + recSize.height + "</height>";
-        sceneData += "</size>";
+        xml += "<size>";
+        xml += "<width>" + recSize.width + "</width>";
+        xml += "<height>" + recSize.height + "</height>";
+        xml += "</size>";
 
         obj.layers[obj.layers.length - 1].visible = false;
     }
 
-    sceneData += "<arguments>";
-    sceneData += "<string>" + params[1] + "</string>";   //方向
-    sceneData += "<string>" + params[2] + "</string>";   //span
-    sceneData += "</arguments>";
+    xml += "<args>";
+    xml += "<string>" + params[1] + "</string>";   //方向
+    xml += "<string>" + params[2] + "</string>";   //span
+    xml += "</args>";
 
-    sceneData += "</Layer>";
+    xml += "</PsLayer>";
 }
 
 function exportInputField(obj) {
     var itemName = obj.name.substring(0, obj.name.search("@"));
-    sceneData += ("<Layer>\n<type>InputField</type>\n<name>" + itemName + "</name>\n");
-    sceneData += "<layers>";
-
-    // sceneData += "<images>\n";
+    xml += ("<PsLayer>\n<type>InputField</type>\n<name>" + itemName + "</name>\n");
+    xml += "<layers>";
 
     for (var i = obj.layers.length - 1; 0 <= i; i--) {
         exportArtLayer(obj.layers[i]);
     }
 
-    sceneData += "</layers>";
-    // sceneData += "\n</images>\n</Layer>";
-    sceneData += "\n</Layer>";
+    xml += "</layers>";
+    xml += "\n</PsLayer>";
 }
 
 function exportButton(obj) {
     var itemName = obj.name.substring(0, obj.name.search("@"));
-    sceneData += ("<Layer>\n<type>Button</type>\n<name>" + itemName + "</name>\n");
-    sceneData += "<layers>";
-
-    // sceneData += "<images>\n";
+    xml += ("<PsLayer>\n<type>Button</type>\n<name>" + itemName + "</name>\n");
+    xml += "<layers>";
 
     for (var i = obj.layers.length - 1; 0 <= i; i--) {
         exportArtLayer(obj.layers[i]);
     }
-    sceneData += "</layers>";
-    // sceneData += "\n</images>\n</Layer>";
-    sceneData += "\n</Layer>";
+    xml += "</layers>";
+    xml += "\n</PsLayer>";
 }
 
 function exportToggle(obj) {
     var itemName = obj.name.substring(0, obj.name.search("@"));
-    sceneData += ("<Layer>\n<type>Toggle</type>\n<name>" + itemName + "</name>\n");
-    sceneData += "<layers>";
-
-    // sceneData += "<images>\n";
+    xml += ("<PsLayer>\n<type>Toggle</type>\n<name>" + itemName + "</name>\n");
+    xml += "<layers>";
 
     for (var i = obj.layers.length - 1; 0 <= i; i--) {
         exportArtLayer(obj.layers[i]);
     }
 
-    sceneData += "</layers>";
-    // sceneData += "\n</images>\n</Layer>";
-    sceneData += "\n</Layer>";
+    xml += "</layers>";
+    xml += "\n</PsLayer>";
 }
 
 function exportSlider(obj) {
     var itemName = obj.name.substring(0, obj.name.search("@"));
-    sceneData += ("<Layer>\n<type>Slider</type>\n<name>" + itemName + "</name>\n");
+    xml += ("<PsLayer>\n<type>Slider</type>\n<name>" + itemName + "</name>\n");
 
     var params = obj.name.split(":");
 
@@ -453,25 +439,23 @@ function exportSlider(obj) {
         setLayerSizeAndPos(obj.layers[obj.layers.length - 1]);
     }
 
-    sceneData += "<arguments>";
-    sceneData += "<string>" + params[1] + "</string>"; //滑动方向
-    sceneData += "</arguments>";
+    xml += "<args>";
+    xml += "<string>" + params[1] + "</string>"; //滑动方向
+    xml += "</args>";
 
-    // sceneData += "<images>\n";
-    sceneData += "<layers>";
+    xml += "<layers>";
 
     for (var i = obj.layers.length - 1; 0 <= i; i--) {
         exportArtLayer(obj.layers[i]);
     }
-    sceneData += "</layers>";
+    xml += "</layers>";
 
-    // sceneData += "\n</images>\n</Layer>";
-    sceneData += "\n</Layer>";
+    xml += "\n</PsLayer>";
 }
 
 function exportScrollBar(obj) {
     var itemName = obj.name.substring(0, obj.name.search("@"));
-    sceneData += ("<Layer>\n<type>ScrollBar</type>\n<name>" + itemName + "</name>\n");
+    xml += ("<PsLayer>\n<type>ScrollBar</type>\n<name>" + itemName + "</name>\n");
 
     var params = obj.name.split(":");
 
@@ -479,52 +463,33 @@ function exportScrollBar(obj) {
         alert(obj.name + "-------Layer's name is not 1 argument------------");
     }
 
-    sceneData += "<arguments>";
-    sceneData += "<string>" + params[1] + "</string>"; //滑动方向
-    sceneData += "<string>" + params[2] + "</string>"; //比例
-    sceneData += "</arguments>";
+    xml += "<args>";
+    xml += "<string>" + params[1] + "</string>"; //滑动方向
+    xml += "<string>" + params[2] + "</string>"; //比例
+    xml += "</args>";
 
-    // sceneData += "<images>\n";
-    sceneData += "<layers>";
+    xml += "<layers>";
 
     for (var i = obj.layers.length - 1; 0 <= i; i--) {
         exportArtLayer(obj.layers[i]);
     }
-    sceneData += "</layers>";
-
-    // sceneData += "\n</images>\n</Layer>";
-    sceneData += "\n</Layer>";
-}
-
-function exportPanel(obj) {
-    var itemName = obj.name.substring(0, obj.name.search("@"));
-    sceneData += ("<Layer>\n<type>Panel</type>\n<name>" + itemName + "</name>\n");
-
-    exportAllLayers(obj);
-
-    // sceneData += "<images>\n";
-    sceneData += "<layers>";
-
-    for (var j = obj.artLayers.length - 1; 0 <= j; j--) {
-        exportArtLayer(obj.artLayers[j]);
-    }
-    sceneData += "</layers>";
-
-    // sceneData += "\n</images>\n</Layer>";
-    sceneData += "\n</Layer>";
+    xml += "</layers>";
+    xml += "\n</PsLayer>";
 }
 
 function exportArtLayer(obj) {
     if (typeof (obj) == "undefined") { return };
     if (obj.name.search("@Size") >= 0) { return };
 
-    sceneData += "\n<Layer>";
-    sceneData += "<type>Normal</type>";
-    //sceneData += "<name>" + makeValidFileName(obj.name) + "</name>";
+    xml += "\n<PsLayer>";
+    xml += "<type>Normal</type>";
     var validFileName = makeValidFileName(obj.name);
-    sceneData += "<name>" + validFileName + "</name>";
-    sceneData += "<image>\n";
-    // sceneData += "<PSImage>\n";
+
+    // alert("psdName: " + obj.name + "  picName: " + validFileName);
+
+    xml += "<name>" + validFileName + "</name>";
+    xml += "<image>\n";
+
     if (LayerKind.TEXT == obj.kind) {
         exportLabel(obj, validFileName);
     }
@@ -534,270 +499,90 @@ function exportArtLayer(obj) {
     else {
         exportImage(obj, validFileName);
     }
-    sceneData += "</image>";
-    // sceneData += "</PSImage>";
-    sceneData += "\n</Layer>";
+    xml += "</image>";
+
+    xml += "\n</PsLayer>";
 }
 
 function exportLabel(obj, validFileName) {
     //有些文本如标题，按钮，美术用的是其他字体，可能还加了各种样式，需要当做图片切出来使用
-    if (obj.name.search("_ArtStatic") >= 0) {
+    if (obj.name.search("_ArtFont") >= 0) {
         exportImage(obj, validFileName);
         return;
     }
 
-    //处理静态文本，会对应unity的静态字体
-    var StaticText = false;
-    if (obj.name.search("_Static") >= 0) {
-        StaticText = true;
-    }
+    // TODO ? 静态字体需要特殊标记？？？
 
-    sceneData += "<imageType>" + "Label" + "</imageType>\n";
-    //var validFileName = makeValidFileName(obj.name);
-    sceneData += "<name>" + validFileName + "</name>\n";
+    //处理静态文本，会对应unity的静态字体
+    // var StaticText = false;
+    // if (obj.name.search(Label_StaticFoint) >= 0) {
+    //     StaticText = true;
+    // }
+
+    xml += "<imageType>" + "Label" + "</imageType>\n";
+    xml += "<name>" + validFileName + "</name>\n";
     obj.visible = true;
-    saveScenePng(duppedPsd.duplicate(), validFileName, false);
+    saveScenePng(dupPsd.duplicate(), validFileName, false);
     obj.visible = false;
 
-    sceneData += "<arguments>";
-    sceneData += "<string>" + obj.textItem.color.rgb.hexValue + "</string>";
-
-    if (StaticText == true) {
-        sceneData += "<string>" + obj.textItem.font + "_Static" + "</string>";
-    }
-    else {
-        sceneData += "<string>" + obj.textItem.font + "</string>";
-    }
-    //sceneData += "<string>" + obj.textItem.font + "</string>";
-    sceneData += "<string>" + obj.textItem.size.value + "</string>";
-    sceneData += "<string>" + obj.textItem.contents + "</string>";
+    xml += "<args>";
+    xml += "<string>" + obj.textItem.color.rgb.hexValue + "</string>";
+    xml += "<string>" + obj.textItem.font + "</string>";
+    xml += "<string>" + obj.textItem.size.value + "</string>";
+    xml += "<string>" + obj.textItem.contents + "</string>";
 
     //段落文本带文本框，可以取得对齐方式
     if (obj.textItem.kind == TextType.PARAGRAPHTEXT) {
-        sceneData += "<string>" + obj.textItem.justification + "</string>";     //加对齐方式
+        xml += "<string>" + obj.textItem.justification + "</string>";     //加对齐方式
     }
-    sceneData += "</arguments>";
+    // 点文本，默认left对齐吧
+    else {
+        xml += "<string>LEFT</string>";
+    }
+
+    // alert(obj.textItem.name + ": " + obj.textItem.justification);
+
+    xml += "</args>";
+
+    // 透明度
+    xml += "<opacity>" + obj.opacity + "</opacity>";
+}
+
+function exportTexture(obj, validFileName) {
+    xml += "<imageType>" + "Texture" + "</imageType>\n";
+    xml += "<name>" + validFileName + "</name>\n";
 
     // 透明度
     sceneData += "<opacity>" + obj.opacity + "</opacity>";
 
-    // 新增渐变
-    if (obj.name.search("_JB") >= 0) {
-        var _text = obj.name.substring(obj.name.search("_JB"), obj.name.length);
-
-        var params = _text.split("|");
-        params = params[0].split(":");
-
-        if (params.length > 1) {
-            sceneData += "<gradient>"
-
-            for (var i = 0; i < params.length; ++i) {
-                if (params[i].search("_") >= 0) {
-                    continue;
-                }
-
-                sceneData += params[i];
-
-                if (i < params.length - 1) {
-                    sceneData += "|";
-                }
-            }
-
-            sceneData += "</gradient>";
-        }
-    }
-
-    // 新增描边
-    if (obj.name.search("_OL") >= 0) {
-        var _text = obj.name.substring(obj.name.search("_OL"), obj.name.length);
-
-        var params = _text.split("|");
-        params = params[0].split(":");
-
-        if (params.length > 1) {
-            sceneData += "<outline>"
-
-            for (var i = 0; i < params.length; ++i) {
-                if (params[i].search("_") >= 0) {
-                    continue;
-                }
-
-                sceneData += params[i];
-
-                if (i < params.length - 1) {
-                    sceneData += "|";
-                }
-            }
-
-            sceneData += "</outline>";
-        }
-    }
-}
-
-function exportTexture(obj, validFileName) {
-    //var validFileName = makeValidFileName(obj.name);
-    sceneData += "<imageType>" + "Texture" + "</imageType>\n";
-    sceneData += "<name>" + validFileName + "</name>\n";
-
-    // 透明度
-    // sceneData += "<opacity>" + obj.opacity +"</opacity>";
-
     obj.visible = true;
-    saveScenePng(duppedPsd.duplicate(), validFileName, true);
+    saveScenePng(dupPsd.duplicate(), validFileName, true);
+
     obj.visible = false;
 }
 
 function exportImage(obj, validFileName) {
-    //var validFileName = makeValidFileName(obj.name);
-    var oriName = obj.name
-    sceneData += "<name>" + validFileName + "</name>\n";
+
+    xml += "<name>" + validFileName + "</name>\n";
 
     if (obj.name.search("Common") >= 0) {
-        sceneData += "<imageSource>" + "Common" + "</imageSource>\n";
+        xml += "<imageSource>" + "Common" + "</imageSource>\n";
     }
     else if (obj.name.search("Global") >= 0) {
-        sceneData += "<imageSource>" + "Global" + "</imageSource>\n";
-    }
-    else if (obj.name.search("CustomAtlas") >= 0) {
-        sceneData += "<imageSource>" + "CustomAtlas" + "</imageSource>\n";
-
-        var atlasName = obj.name.substring(obj.name.lastIndexOf("@CustomAtlas"), obj.name.length);
-        // 拆分出图集名
-
-
-        // 添加图集名
-        sceneData += "<AtlasName>" + "" + "</AtlasName>";
+        xml += "<imageSource>" + "Global" + "</imageSource>\n";
     }
     else {
-        sceneData += "<imageSource>" + "Custom" + "</imageSource>\n";
+        xml += "<imageSource>" + "Custom" + "</imageSource>\n";
     }
 
-    if (oriName.search("_9S") >= 0) {
-        sceneData += "<imageType>" + "SliceImage" + "</imageType>\n";
-        obj.visible = true;
-        var _objName = obj.name
-        // var newDoc = app.documents.add(duppedPsd.width, duppedPsd.height,duppedPsd.resolution, _objName+"doc",NewDocumentMode.RGB,DocumentFill.TRANSPARENT)
-        // app.activeDocument = duppedPsd
-        // obj.copy()
-        // app.activeDocument = newDoc
-        // newDoc.paste()
-        //   newDoc.activeLayer.name = _objName
-        var recSize = getLayerRec(duppedPsd.duplicate(), true);
-        sceneData += "<position>";
-        sceneData += "<x>" + recSize.x + "</x>";
-        sceneData += "<y>" + recSize.y + "</y>";
-        sceneData += "</position>";
+    xml += "<imageType>" + "Image" + "</imageType>\n";
 
-        sceneData += "<size>";
-        sceneData += "<width>" + recSize.width + "</width>";
-        sceneData += "<height>" + recSize.height + "</height>";
-        sceneData += "</size>";
-
-        // 透明度
-        // sceneData += "<opacity>" + obj.opacity +"</opacity>";
-
-        // _9sliceCutImg(newDoc,_objName,validFileName);
-        _9sliceCutImg(duppedPsd.duplicate(), _objName, validFileName);
-        obj.visible = false;
-        return;
-    }
-    else if (oriName.search("LeftHalf") > 0)       //左右对称的图片切左边一半
-    {
-        sceneData += "<imageType>" + "LeftHalfImage" + "</imageType>\n";
-
-        obj.visible = true;
-
-        var recSize = getLayerRec(duppedPsd.duplicate());
-        sceneData += "<position>";
-        sceneData += "<x>" + recSize.x + "</x>";
-        sceneData += "<y>" + recSize.y + "</y>";
-        sceneData += "</position>";
-
-        sceneData += "<size>";
-        sceneData += "<width>" + recSize.width + "</width>";
-        sceneData += "<height>" + recSize.height + "</height>";
-        sceneData += "</size>";
-
-        // 透明度
-        // sceneData += "<opacity>" + obj.opacity +"</opacity>";
-
-        cutLeftHalf(duppedPsd.duplicate(), validFileName);
-        obj.visible = false;
-        return;
-    }
-    else if (obj.name.search("BottomHalf") > 0)     //上下对称的图片切底部一半
-    {
-        sceneData += "<imageType>" + "BottomHalfImage" + "</imageType>\n";
-
-        obj.visible = true;
-
-        //半图要先计算出大小和位置
-        var recSize = getLayerRec(duppedPsd.duplicate());
-        sceneData += "<position>";
-        sceneData += "<x>" + recSize.x + "</x>";
-        sceneData += "<y>" + recSize.y + "</y>";
-        sceneData += "</position>";
-
-        sceneData += "<size>";
-        sceneData += "<width>" + recSize.width + "</width>";
-        sceneData += "<height>" + recSize.height + "</height>";
-        sceneData += "</size>";
-
-        // 透明度
-        // sceneData += "<opacity>" + obj.opacity +"</opacity>";
-
-        cutBottomHalf(duppedPsd.duplicate(), validFileName);
-        obj.visible = false;
-        return;
-    }
-    else if (obj.name.search("Quarter") > 0)     //上下左右均对称的图片切左下四分之一
-    {
-        sceneData += "<imageType>" + "QuarterImage" + "</imageType>\n";
-
-        obj.visible = true;
-
-        var recSize = getLayerRec(duppedPsd.duplicate());
-        sceneData += "<position>";
-        sceneData += "<x>" + recSize.x + "</x>";
-        sceneData += "<y>" + recSize.y + "</y>";
-        sceneData += "</position>";
-
-        sceneData += "<size>";
-        sceneData += "<width>" + recSize.width + "</width>";
-        sceneData += "<height>" + recSize.height + "</height>";
-        sceneData += "</size>";
-
-        // 透明度
-        // sceneData += "<opacity>" + obj.opacity +"</opacity>";
-
-        cutQuarter(duppedPsd.duplicate(), validFileName);
-        obj.visible = false;
-        return;
-    }
-    else {
-        sceneData += "<imageType>" + "Image" + "</imageType>\n";
-
-        // 透明度
-        // sceneData += "<opacity>" + obj.opacity +"</opacity>";
-    }
+    // 透明度
+    xml += "<opacity>" + obj.opacity + "</opacity>";
 
     obj.visible = true;
-    saveScenePng(duppedPsd.duplicate(), validFileName, true);
+    saveScenePng(dupPsd.duplicate(), validFileName, true);
     obj.visible = false;
-
-}
-
-//导出页签
-function exportTabGroup(obj) {
-    var itemName = obj.name.substring(0, obj.name.search("@"));
-    sceneData += ("<Layer>\n<type>TabGroup</type>\n<name>" + itemName + "</name>\n");
-    sceneData += "<layers>";
-
-    exportAllLayers(obj);
-
-    sceneData += "</layers>";
-
-    sceneData += "\n</Layer>";
 }
 
 function hideAllLayers(obj) {
@@ -815,7 +600,6 @@ function hideLayerSets(obj) {
     }
 }
 
-//显示图层组及组下所有图层
 function showAllLayers(obj) {
     showLayerSets(obj);
 }
@@ -830,7 +614,6 @@ function showLayerSets(obj) {
         }
     }
 }
-
 
 function getLayerRec(psd, notMerge) {
     // we should now have a single art layer if all went well
@@ -909,42 +692,39 @@ function saveScenePng(psd, fileName, writeToDisk, notMerge) {
 
     // save the scene data
     if (!notMerge) {
-        sceneData += "<position>";
-        sceneData += "<x>" + rec.x + "</x>";
-        sceneData += "<y>" + rec.y + "</y>";
-        sceneData += "</position>";
+        xml += "<position>";
+        xml += "<x>" + rec.x + "</x>";
+        xml += "<y>" + rec.y + "</y>";
+        xml += "</position>";
 
-        sceneData += "<size>";
-        sceneData += "<width>" + rec.width + "</width>";
-        sceneData += "<height>" + rec.height + "</height>";
-        sceneData += "</size>";
+        xml += "<size>";
+        xml += "<width>" + rec.width + "</width>";
+        xml += "<height>" + rec.height + "</height>";
+        xml += "</size>";
     }
 
     if (writeToDisk) {
         // save the image
-        var pngFile = new File(destinationFolder + "/" + fileName + ".png");
+        var pngFile = new File(dstFolder + "/" + fileName + ".png");
         //var pngSaveOptions = new PNGSaveOptions();
         //psd.saveAs(pngFile, pngSaveOptions, true, Extension.LOWERCASE);
 
-        var pngSaveOptions = new ExportOptionsSaveForWeb();
-        pngSaveOptions.format = SaveDocumentType.PNG;
-        pngSaveOptions.PNG8 = false;
-        psd.exportDocument(pngFile, ExportType.SAVEFORWEB, pngSaveOptions);
+        if (!pngFile.exists) {
+            // alert("not exists")
+
+            var pngSaveOptions = new ExportOptionsSaveForWeb();
+            pngSaveOptions.format = SaveDocumentType.PNG;
+            pngSaveOptions.PNG8 = false;
+            psd.exportDocument(pngFile, ExportType.SAVEFORWEB, pngSaveOptions);
+        }
     }
     psd.close(SaveOptions.DONOTSAVECHANGES);
 
 }
 
 function makeValidFileName(fileName) {
+
     var validName = fileName.replace(/^\s+|\s+$/gm, ''); // trim spaces
-    //删除九宫格关键字符
-    validName = validName.replace(/\s*_9S(\:\d+)+/g, "");
-
-    // 删除渐变色关键字
-    validName = validName.replace(/\s*_JB(\:[a-zA-Z0-9]+)+/g, "");
-
-    // 删除outline
-    validName = validName.replace(/\s*_OL(\:[a-zA-Z0-9]+)+/g, "");
 
     validName = validName.replace(/[\\\*\/\?:"\|<>]/g, ''); // remove characters not allowed in a file name
     validName = validName.replace(/[ ]/g, '_'); // replace spaces with underscores, since some programs still may have troubles with them
@@ -954,219 +734,26 @@ function makeValidFileName(fileName) {
         validName.match("CustomAtlas")) {
         validName = validName.substring(0, validName.lastIndexOf("@"));  //截取@之前的字符串作为图片的名称。
     }
-    else if (!sourcePsdName.match("Common") ||
-        !sourcePsdName.match("Global") ||
-        !sourcePsdName.match("CustomAtlas"))    // 判断是否为公用的PSD素材文件，如果不是，则自动为图片增加后缀，防止重名。 公用psd文件的图片层不允许重名。
+    else if (!srcPsdName.match("Common") ||
+        !srcPsdName.match("Global") ||
+        !srcPsdName.match("CustomAtlas"))    // 判断是否为公用的PSD素材文件，如果不是，则自动为图片增加后缀，防止重名。 公用psd文件的图片层不允许重名。
     {
-        validName += "_" + uuid++;
+        // new
+        if (typeof (validNameMap[validName]) != "undefined") {
+            var uid = validNameMap[validName];
+            validNameMap[validName]++;
+            validName += "_" + uid;
+        }
+        else {
+            validNameMap[validName] = 0;
+        }
     }
 
     $.writeln(validName);
     return validName;
 }
 
-/***************************************************************************************************************************************************************************************************************/
-//对称的图片处理，切一半
-//2017.01.10
-//by zs
-
 // 裁切 基于透明像素
 function trim(doc) {
     doc.trim(TrimType.TRANSPARENT, true, true, true, true);
-}
-
-// 裁剪左半部分
-function cutLeftHalf(doc, layerName) {
-    doc.mergeVisibleLayers();
-
-    trim(doc);
-    var _obj = doc.activeLayer
-
-    var width = doc.width;
-    var height = doc.height;
-    var side = width / 2;
-
-    var region = Array(Array(0, height), Array(0, 0), Array(side, 0), Array(side, height));
-
-    var selectRect = doc.selection.select(region);
-    doc.selection.copy();
-    var newStem = doc.paste();
-    newStem.name = layerName;
-
-    var deltaX = 0;
-    var deltaY = 0;
-    if (region[0][0] != 0) {
-        deltaX = -(width - side * 2);
-    }
-    newStem.translate(deltaX, deltaY);
-
-    _obj.visible = false;
-    trim(doc);
-    saveScenePng(doc, layerName, true, true);
-    // exportHalfImage(doc,"LeftHalf");
-}
-
-// 裁剪下半部分
-function cutBottomHalf(doc, layerName) {
-    doc.mergeVisibleLayers();
-
-    trim(doc);
-    var _obj = doc.activeLayer
-    var width = doc.width;
-    var height = doc.height;
-    var side = height / 2;
-
-    //var region = Array(Array(0,side),Array(0,0),Array(width,0),Array(width,side));
-    var region = Array(Array(0, height), Array(0, side), Array(width, side), Array(width, height));
-
-    var selectRect = doc.selection.select(region);
-    doc.selection.copy();
-    var newStem = doc.paste();
-    newStem.name = layerName;
-
-    var deltaX = 0;
-    var deltaY = 0;
-    if (region[0][1] != side) {
-        deltaY = -(height - side * 2);
-    }
-    newStem.translate(deltaX, deltaY);
-
-    _obj.visible = false;
-
-    trim(doc);
-    saveScenePng(doc, layerName, true, true);
-    //exportHalfImage(doc,"UpHalf");
-}
-
-// 裁剪左下四分之一
-function cutQuarter(doc, layerName) {
-    doc.mergeVisibleLayers();
-
-    trim(doc);
-    var _obj = doc.activeLayer
-    var width = doc.width;
-    var height = doc.height;
-    var side = height / 2;
-
-    var region = Array(Array(0, height), Array(0, height / 2), Array(width / 2, height / 2), Array(width / 2, height));
-
-    var selectRect = doc.selection.select(region);
-    doc.selection.copy();
-    var newStem = doc.paste();
-    newStem.name = layerName;
-
-    var deltaX = 0;
-    var deltaY = 0;
-    if (region[0][1] != side) {
-        deltaY = -(height - side * 2);
-    }
-    newStem.translate(deltaX, deltaY);
-
-    _obj.visible = false;
-
-    trim(doc);
-    saveScenePng(doc, layerName, true, true);
-}
-
-function exportHalfImage(psd, halfType) {
-    hideAllLayers(psd);
-
-    var layerName = "";
-    for (var i = psd.layers.length - 1; 0 <= i; i--) {
-        layerName = psd.layers[i].name;
-        if (layerName.match(halfType)) {
-            psd.layers[i].visible = true;
-            saveScenePng(psd, layerName, true, true);
-        }
-    }
-}
-
-
-/***************************************************************************************************************************************************************************************************************/
-//九宫格切图
-//2017.01.13
-//by HuangLang
-
-function _9sliceCutImg(doc, layerName, vaildName) {
-    // 创建图层组
-    var _obj = doc.activeLayer
-    var stemGroup = doc.layerSets.add();
-    stemGroup.name = layerName
-    // _obj.move(stemGroup,ElementPlacement.PLACEATEND)
-    doc.mergeVisibleLayers();
-    trim(doc);
-    var width = doc.width;
-    var height = doc.height;
-    var re = /\s*_9S(\:\d+)+/g;
-    var getStr = ""
-    var result = layerName.match(re)
-    if (result) {
-        getStr = result[0]
-    } else {
-        alert("图层名为：" + layerName + "的九宫格格式不对！应为_9S:XX或:XX:XX:XX:XX");
-        return;
-    }
-
-    var nums = getStr.split(":")
-    if (nums.length == 2) {
-        for (var j = 0; j < slicePaddingArr.length; j++) {
-            sliceOriArr[j] = parseInt(nums[1])
-            slicePaddingArr[j] = parseInt(nums[1])
-        }
-    }
-    else if (nums.length == 5) {
-        for (var j = 0; j < slicePaddingArr.length; j++) {
-            var num = parseInt(nums[j + 1])
-            sliceOriArr[j] = num
-            if (num == 0) {
-                if ((j + 1) % 2 == 0) {
-                    num = parseInt(height / 2)
-
-                } else {
-
-                    num = parseInt(width / 2)
-                }
-            }
-            slicePaddingArr[j] = num
-        }
-    } else {
-        alert("图层名为：" + layerName + "的九宫格格式不对！应为_9S:XX或:XX:XX:XX:XX");
-        return;
-    }
-
-    var _obj = doc.activeLayer
-    //左下左上，右上右下
-    var selRegion = Array(
-        Array(Array(0, slicePaddingArr[1]), Array(0, 0), Array(slicePaddingArr[0], 0), Array(slicePaddingArr[0], slicePaddingArr[1])),
-        Array(Array(width - slicePaddingArr[2], slicePaddingArr[1]), Array(width - slicePaddingArr[2], 0), Array(width, 0), Array(width, slicePaddingArr[1])),
-        Array(Array(0, height), Array(0, height - slicePaddingArr[3]), Array(slicePaddingArr[0], height - slicePaddingArr[3]), Array(slicePaddingArr[0], height)),
-        Array(Array(width - slicePaddingArr[2], height), Array(width - slicePaddingArr[2], height - slicePaddingArr[3]), Array(width, height - slicePaddingArr[3]), Array(width, height)),
-    );
-    for (var i = 0; i < selRegion.length; i++) {
-        doc.activeLayer = _obj;
-        doc.selection.select(selRegion[i]);
-        doc.selection.copy();
-        var newStem = doc.paste();
-        newStem.name = vaildName;
-        var deltaX = 0;
-        var deltaY = 0;
-        if (selRegion[i][0][0] != 0) {
-            deltaX = - (width - slicePaddingArr[0] - slicePaddingArr[2]);
-        }
-        if (selRegion[i][1][1] != 0) {
-            deltaY = - (height - slicePaddingArr[1] - slicePaddingArr[3]);
-        }
-        newStem.translate(deltaX, deltaY);
-    }
-    _obj.visible = false;
-    doc.mergeVisibleLayers();
-    sceneData += "<arguments>";
-    sceneData += "<string>" + sliceOriArr[0] + "</string>";
-    sceneData += "<string>" + sliceOriArr[1] + "</string>";
-    sceneData += "<string>" + sliceOriArr[2] + "</string>";
-    sceneData += "<string>" + sliceOriArr[3] + "</string>";
-    sceneData += "</arguments>";
-
-    trim(doc);
-    saveScenePng(doc, vaildName, true, true);
 }

@@ -4,11 +4,14 @@
 
 indev...
 
+## TODO
+- ps字体导入到unity的问题
+
 ## Getting Started
 
 1. UPM安装
-3. 文档[~Doc](https://github.com/Sarofc/PSD2UGUI-Unity/tree/main/~Doc)
-4. 例子[~Tests](https://github.com/Sarofc/PSD2UGUI-Unity/tree/main/~Tests)
+3. 文档[Document~](https://github.com/Sarofc/PSD2UGUI-Unity/tree/main/Document~)
+4. 例子[Samples~](https://github.com/Sarofc/PSD2UGUI-Unity/tree/main/Samples~)
 
 ## Reference
 

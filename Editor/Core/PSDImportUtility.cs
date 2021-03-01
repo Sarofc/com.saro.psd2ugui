@@ -19,21 +19,21 @@ namespace PSDUIImporter
         public static GameObject eventSys;
         public static readonly Dictionary<Transform, Transform> ParentDic = new Dictionary<Transform, Transform>();
 
-        public static IEnumerable<ILayerImport> GetAllLayerImporters()
+        public static IEnumerable<IPsLayerImporter> GetAllLayerImporters()
         {
-            var assembly = Assembly.Load("PSD2UGUI");
+            var assembly = Assembly.Load("Saro.PSD2UGUI");
             var allTypes = assembly.GetTypes();
 
-            return allTypes.Where(t => t.IsClass && typeof(ILayerImport).IsAssignableFrom(t) && !t.IsAbstract)
-                .Select(t => Activator.CreateInstance(t) as ILayerImport);
+            return allTypes.Where(t => t.IsClass && typeof(IPsLayerImporter).IsAssignableFrom(t) && !t.IsAbstract)
+                .Select(t => Activator.CreateInstance(t) as IPsLayerImporter);
         }
 
-        public static IEnumerable<IImageImport> GetAllImageLayerImporters()
+        public static IEnumerable<IPsImageImporter> GetAllImageLayerImporters()
         {
-            var assembly = Assembly.Load("PSD2UGUI");
+            var assembly = Assembly.Load("Saro.PSD2UGUI");
             var allTypes = assembly.GetTypes();
-            return allTypes.Where(t => typeof(IImageImport).IsAssignableFrom(t) && !t.IsAbstract)
-                .Select(t => Activator.CreateInstance(t) as IImageImport);
+            return allTypes.Where(t => typeof(IPsImageImporter).IsAssignableFrom(t) && !t.IsAbstract)
+                .Select(t => Activator.CreateInstance(t) as IPsImageImporter);
         }
 
         public static object DeserializeXml(string filePath, System.Type type)
@@ -59,17 +59,6 @@ namespace PSDUIImporter
             xmlFile.Close();
             return instance;
         }
-
-        //         public static T InstantiateItem<T>(string resourcePatn, string name,GameObject parent) where T : UnityEngine.Object
-        //         {
-        //             GameObject temp = Resources.Load(resourcePatn, typeof(GameObject)) as GameObject;
-        //             GameObject item = GameObject.Instantiate(temp) as GameObject;
-        //             item.name = name;
-        //             item.transform.SetParent(canvas.transform, false);
-        //             ParentDic[item.transform] =  parent.transform;
-        //             return item.GetComponent<T>();
-        //         }
-
 
         /// <summary>
         /// 加载并实例化prefab，编辑器下不用Resources.Load，否则这些预设会打到安装包
@@ -109,16 +98,16 @@ namespace PSDUIImporter
             rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
         }
 
-        public static Object LoadAssetAtPath<T>(this PSImage image)
+        public static T LoadAssetAtPath<T>(this PsImage image) where T : Object
         {
-            string assetPath = "";
+            string assetPath;
             if (image.imageSource == EImageSource.Common || image.imageSource == EImageSource.Custom)
             {
-                assetPath = PSDImportUtility.baseDirectory + image.name + PSD2UGUIConfig.PNG_SUFFIX;
+                assetPath = PSDImportUtility.baseDirectory + image.name + PSD2UGUIConfig.k_PNG_SUFFIX;
             }
             else
             {
-                assetPath = PSD2UGUIConfig.Globle_BASE_FOLDER + image.name.Replace(".", "/") + PSD2UGUIConfig.PNG_SUFFIX;
+                assetPath = PSD2UGUIConfig.Globle_BASE_FOLDER + image.name.Replace(".", "/") + PSD2UGUIConfig.k_PNG_SUFFIX;
             }
 
             Object obj = AssetDatabase.LoadAssetAtPath(assetPath, typeof(T));
@@ -127,7 +116,7 @@ namespace PSDUIImporter
                 Debug.LogWarning("loading asset is null, at path: " + assetPath);
             }
 
-            return obj;
+            return (T)obj;
         }
 
         public static RectTransform GetRectTransform(this GameObject source)

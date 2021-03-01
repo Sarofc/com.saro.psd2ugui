@@ -3,18 +3,16 @@ namespace PSDUIImporter
 {
     public enum ELayerType
     {
-        Panel,
         Normal,
         ScrollView,
-        Grid,
+        GridLayout,
         Button,
         Lable,
         Toggle,
         Slider,
-        Group,
+        HVLayout,
         InputField,
         ScrollBar,
         LayoutElement,
-        TabGroup,
     }
 }

@@ -3,15 +3,40 @@ using UnityEngine;
 
 namespace PSDUIImporter
 {
-    [CreateAssetMenu(fileName = "PSD2UGUIConfig", menuName = "Create PSD2UGUIConfig Asset")]
-    public class PSD2UGUIConfig : ScriptableSingleton<PSD2UGUIConfig>
+    internal class PSD2UGUIConfig : ScriptableObject
     {
-        public const string k_CONFIG_PATH = "Assets/PSD2UGUI/PSD2UGUIConfig.asset";
+        public const string k_ConfigPath = "Assets/Editor/PSD2UGUI/PSD2UGUIConfig.asset";
+
+        public const string k_UGUI_PREFAB_PATH = "Packages/com.saro.psd2ugui/Editor/Template/UI/";
+
+        public const string k_PNG_SUFFIX = ".png";
+
+        public const string k_FONT_SUFFIX = ".ttf";
+
+        public const string k_PREFAB_SUFFIX = ".prefab";
+
+        public static PSD2UGUIConfig instance
+        {
+            get
+            {
+                if (s_Instance == null)
+                {
+                    s_Instance = AssetDatabase.LoadAssetAtPath<PSD2UGUIConfig>(k_ConfigPath);
+
+                    if (s_Instance == null)
+                    {
+                        Debug.LogError("use PSD2UGUI/Create Config first...");
+                    }
+                }
+
+                return s_Instance;
+            }
+        }
+
+        private static PSD2UGUIConfig s_Instance;
 
         public static string Globle_BASE_FOLDER => instance._Globle_BASE_FOLDER;
-        public static string Globle_FOLDER_NAME => instance._Globle_FOLDER_NAME;
         public static string FONT_FOLDER => instance._FONT_FOLDER;
-        public static string FONT_STATIC_FOLDER => instance._FONT_STATIC_FOLDER;
 
 
         public static string ASSET_PATH_EMPTY => instance.m_ASSET_PATH_EMPTY;
@@ -34,102 +59,33 @@ namespace PSDUIImporter
         public static string ASSET_PATH_TAB => instance.m_ASSET_PATH_TAB;
         public static string ASSET_PATH_TABGROUP => instance.m_ASSET_PATH_TABGROUP;
 
-        [Header("通用图集路径")]
-        public string _Globle_BASE_FOLDER = "Assets/Textures/HomeCommon/";
-
-        [Space(10)]
-        [Header("图集名")]
-        public string _Globle_FOLDER_NAME = "HomeCommon";
+        [Header("通用图片路径")]
+        public string _Globle_BASE_FOLDER = "Assets/Art/Textures/HomeCommon/";
 
         [Header("字体资源路径")]
-        public string _FONT_FOLDER = "Assets/PSD2UGUI/Font/";
-
-        [Header("静态字体资源路径")]
-        public string _FONT_STATIC_FOLDER = "Assets/PSD2UGUI/Font/StaticFont/";
+        public string _FONT_FOLDER = "Assets/Art/Font/";
 
         [Space(10)]
-        [Header("资源模板加载路径")]
-        public /*static*/ string m_ASSET_PATH_EMPTY = PSDUI_PATH + "Empty" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_BUTTON = PSDUI_PATH + "Button" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_TOGGLE = PSDUI_PATH + "Toggle" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_CANVAS = PSDUI_PATH + "Canvas" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_EVENTSYSTEM = PSDUI_PATH + "EventSystem" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_GRID = PSDUI_PATH + "Grid" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_IMAGE = PSDUI_PATH + "Image" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_RAWIMAGE = PSDUI_PATH + "RawImage" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_HALFIMAGE = PSDUI_PATH + "HalfImage" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_SCROLLVIEW = PSDUI_PATH + "ScrollView" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_SLIDER = PSDUI_PATH + "Slider" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_TEXT = PSDUI_PATH + "Text" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_SCROLLBAR = PSDUI_PATH + "Scrollbar" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_GROUP_V = PSDUI_PATH + "VerticalGroup" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_GROUP_H = PSDUI_PATH + "HorizontalGroup" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_INPUTFIELD = PSDUI_PATH + "InputField" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_LAYOUTELEMENT = PSDUI_PATH + "LayoutElement" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_TAB = PSDUI_PATH + "Tab" + PSDUI_SUFFIX;
-        public /*static*/ string m_ASSET_PATH_TABGROUP = PSDUI_PATH + "TabGroup" + PSDUI_SUFFIX;
+        [Header("预制体模板加载路径")]
+        public string m_ASSET_PATH_EMPTY = k_UGUI_PREFAB_PATH + "Empty" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_BUTTON = k_UGUI_PREFAB_PATH + "Button" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_TOGGLE = k_UGUI_PREFAB_PATH + "Toggle" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_CANVAS = k_UGUI_PREFAB_PATH + "Canvas" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_EVENTSYSTEM = k_UGUI_PREFAB_PATH + "EventSystem" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_GRID = k_UGUI_PREFAB_PATH + "Grid" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_IMAGE = k_UGUI_PREFAB_PATH + "Image" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_RAWIMAGE = k_UGUI_PREFAB_PATH + "RawImage" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_HALFIMAGE = k_UGUI_PREFAB_PATH + "HalfImage" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_SCROLLVIEW = k_UGUI_PREFAB_PATH + "ScrollView" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_SLIDER = k_UGUI_PREFAB_PATH + "Slider" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_TEXT = k_UGUI_PREFAB_PATH + "Text" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_SCROLLBAR = k_UGUI_PREFAB_PATH + "Scrollbar" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_GROUP_V = k_UGUI_PREFAB_PATH + "VerticalGroup" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_GROUP_H = k_UGUI_PREFAB_PATH + "HorizontalGroup" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_INPUTFIELD = k_UGUI_PREFAB_PATH + "InputField" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_LAYOUTELEMENT = k_UGUI_PREFAB_PATH + "LayoutElement" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_TAB = k_UGUI_PREFAB_PATH + "Tab" + k_PREFAB_SUFFIX;
+        public string m_ASSET_PATH_TABGROUP = k_UGUI_PREFAB_PATH + "TabGroup" + k_PREFAB_SUFFIX;
 
-
-
-        public static string PSDUI_PATH = "Packages/com.saro.psd2ugui/Editor/Template/UI/";
-
-        public const string PNG_SUFFIX = ".png";
-
-        public const string NINE_SLICE = "9Slice";
-
-        public const string IMAGE = "Image";
-
-        public const string FONT_SUFIX = ".ttf";
-
-        public const string PSDUI_SUFFIX = ".prefab";
-
-
-        //public PSDImporterConst()
-        //{
-        //    LoadConfig();
-        //}
-
-        /// <summary>
-        /// 读取工具
-        /// </summary>
-        //public static void LoadConfig()
-        //{
-        //    // 重读资源路径
-        //    PSD2UGUIConfig _config = AssetDatabase.LoadAssetAtPath<PSD2UGUIConfig>(k_CONFIG_PATH);
-
-        //    if (_config != null)
-        //    {
-        //        Globle_BASE_FOLDER = _config.m_commonAtlasPath;
-        //        Globle_FOLDER_NAME = _config.m_commonAtlasName;
-        //        FONT_FOLDER = _config.m_fontPath;
-        //        FONT_STATIC_FOLDER = _config.m_staticFontPath;
-        //        PSDUI_PATH = _config.m_psduiTemplatePath;
-
-        //        // 重生成路径
-        //        ASSET_PATH_EMPTY = PSDUI_PATH + "Empty" + PSDUI_SUFFIX;
-        //        ASSET_PATH_BUTTON = PSDUI_PATH + "Button" + PSDUI_SUFFIX;
-        //        ASSET_PATH_TOGGLE = PSDUI_PATH + "Toggle" + PSDUI_SUFFIX;
-        //        ASSET_PATH_CANVAS = PSDUI_PATH + "Canvas" + PSDUI_SUFFIX;
-        //        ASSET_PATH_EVENTSYSTEM = PSDUI_PATH + "EventSystem" + PSDUI_SUFFIX;
-        //        ASSET_PATH_GRID = PSDUI_PATH + "Grid" + PSDUI_SUFFIX;
-        //        ASSET_PATH_IMAGE = PSDUI_PATH + "Image" + PSDUI_SUFFIX;
-        //        ASSET_PATH_RAWIMAGE = PSDUI_PATH + "RawImage" + PSDUI_SUFFIX;
-        //        ASSET_PATH_HALFIMAGE = PSDUI_PATH + "HalfImage" + PSDUI_SUFFIX;
-        //        ASSET_PATH_SCROLLVIEW = PSDUI_PATH + "ScrollView" + PSDUI_SUFFIX;
-        //        ASSET_PATH_SLIDER = PSDUI_PATH + "Slider" + PSDUI_SUFFIX;
-        //        ASSET_PATH_TEXT = PSDUI_PATH + "Text" + PSDUI_SUFFIX;
-        //        ASSET_PATH_SCROLLBAR = PSDUI_PATH + "Scrollbar" + PSDUI_SUFFIX;
-        //        ASSET_PATH_GROUP_V = PSDUI_PATH + "VerticalGroup" + PSDUI_SUFFIX;
-        //        ASSET_PATH_GROUP_H = PSDUI_PATH + "HorizontalGroup" + PSDUI_SUFFIX;
-        //        ASSET_PATH_INPUTFIELD = PSDUI_PATH + "InputField" + PSDUI_SUFFIX;
-        //        ASSET_PATH_LAYOUTELEMENT = PSDUI_PATH + "LayoutElement" + PSDUI_SUFFIX;
-        //        ASSET_PATH_TAB = PSDUI_PATH + "Tab" + PSDUI_SUFFIX;
-        //        ASSET_PATH_TABGROUP = PSDUI_PATH + "TabGroup" + PSDUI_SUFFIX;
-
-        //        Debug.Log("Load config.");
-        //    }
-
-        //    // Debug.LogError(_config.m_staticFontPath);
-        //}
     }
 }

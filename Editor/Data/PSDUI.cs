@@ -3,6 +3,6 @@
     public class PSDUI
     {
         public Size psdSize;
-        public Layer[] layers;
+        public PsLayer[] layers;
     }
 }
