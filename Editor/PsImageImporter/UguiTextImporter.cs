@@ -8,7 +8,7 @@ namespace PSDUIImporter
     public class UguiTextImporter : IPsImageImporter
     {
         /// <summary>
-        /// args[]: color,font,fontSize,text,alignment
+        /// args[]: color,font,fontSize,text,alignment,bounds
         /// </summary>
         /// <param name="psImage"></param>
         /// <param name="parent"></param>
@@ -29,6 +29,7 @@ namespace PSDUIImporter
             var fontSizeStr = psImage.args[2];
             var textStr = psImage.args[3];
             var alignmentStr = psImage.args[4];
+            //var bounds = psImage.args[5];
 
             Debug.Log($"LabelColor: {labelColorStr}\nFontName: {fontNameStr}\nFontSize: {fontSizeStr}\nText: {textStr}\nAlignment: {alignmentStr}");
 
@@ -80,7 +81,24 @@ namespace PSDUIImporter
             myText.horizontalOverflow = HorizontalWrapMode.Overflow;
             myText.alignment = ParseAlignmentPS2UGUI(alignmentStr);
 
-            rectTransform.sizeDelta = new Vector2(psImage.size.width, psImage.size.height);
+            // 5.处理段落文字的文本框大小
+            var w = psImage.size.width;
+            var h = psImage.size.height;
+
+            //if (!string.IsNullOrEmpty(bounds))
+            //{
+            //    var _wh = bounds.Split(',');
+            //    if (_wh.Length == 2)
+            //    {
+            //        if (float.TryParse(_wh[0], out var _w) && float.TryParse(_wh[1], out var _h))
+            //        {
+            //            w = _w;
+            //            h = _h;
+            //        }
+            //    }
+            //}
+
+            rectTransform.sizeDelta = new Vector2(w, h);
             rectTransform.anchoredPosition = new Vector2(psImage.position.x, psImage.position.y);
         }
 
