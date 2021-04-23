@@ -553,7 +553,7 @@ function exportTexture(obj, validFileName) {
     xml += "<name>" + validFileName + "</name>\n";
 
     // 透明度
-    sceneData += "<opacity>" + obj.opacity + "</opacity>";
+    xml += "<opacity>" + obj.opacity + "</opacity>";
 
     obj.visible = true;
     saveScenePng(dupPsd.duplicate(), validFileName, true);
