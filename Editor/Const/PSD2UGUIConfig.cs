@@ -60,10 +60,10 @@ namespace PSDUIImporter
         public static string ASSET_PATH_TABGROUP => instance.m_ASSET_PATH_TABGROUP;
 
         [Header("通用图片路径")]
-        public string _Globle_BASE_FOLDER = "Assets/Art/Textures/HomeCommon/";
+        public string _Globle_BASE_FOLDER = "Assets/Arts/Textures/UI/Common";
 
         [Header("字体资源路径")]
-        public string _FONT_FOLDER = "Assets/Art/Font/";
+        public string _FONT_FOLDER = "Assets/Arts/Fonts/";
 
         [Space(10)]
         [Header("预制体模板加载路径")]
